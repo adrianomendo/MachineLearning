@@ -1,0 +1,72 @@
+---
+title: "Exercise prediction"
+author: "Adriano Mendo"
+date: "June 21, 2016"
+output:
+  html_document:
+    keep_md: yes
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    code_folding: hide
+---
+
+# Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+# Reading and cleaning training data
+
+Reading the training data:
+```{r}
+setwd("C:/Adri/Courses/The Data Science Specialization/Exercises/8 - Machine Learning")
+df.raw = read.csv("pml-training.csv")
+```
+
+Cleaning the data by removing those variables with some NAs or empty values, and those that do not make sense for the prediction (factors and date/time):
+```{r}
+na_or_blank_count  = sapply(df.raw, function(x) sum(is.na(x) | x==""))
+df = df.raw[,-which(na_or_blank_count > 0)]
+df = df[,-c(1,2,3,4,5,6,7)]
+```
+
+# Splitting between training and testing
+
+Data will be now splitted between training data (70 %) and testing data (30 %):
+```{r}
+library(caret)
+set.seed(1)
+inTrain = createDataPartition(y=df$classe,p=0.7,list=FALSE)
+training = df[inTrain,]
+testing = df[-inTrain,]
+```
+
+# Model selection and building
+
+Random forest is one of the most suitable algorithms to make this kind of predictions:
+
+```{r}
+modFit = train(classe~., data=training, method="rf", ntree=500)
+modFit
+```
+
+# Prediction error
+
+Using the testing data, let us calculate the prediction error:
+```{r}
+pred = predict(modFit,testing)
+confusionMatrix(pred,testing$classe)
+```
+
+# Testing the model
+
+Loading the 20 cases where the fitted model will be applied:
+```{r}
+val = read.csv("pml-testing.csv")
+```
+
+Prediction for these cases are:
+```{r}
+pred = predict(modFit,val)
+pred
+```
